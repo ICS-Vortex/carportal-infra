@@ -1,0 +1,936 @@
+openapi: 3.1.0
+info:
+  title: Car Portal API
+  version: 1.0.0
+  summary: Stable DTO contract for web and mobile clients.
+  description: |
+    This document describes the current v1 HTTP contract that client applications must consume.
+    All successful JSON responses use a top-level `data` envelope.
+    All error responses use a top-level `error` envelope with a stable machine-readable `code`.
+servers:
+  - url: http://api.carmain.localhost.com
+    description: Local Docker development
+  - url: http://api.carmain.local
+    description: Local custom-host development
+tags:
+  - name: Public
+  - name: Auth
+  - name: Garage
+  - name: Maintenance
+  - name: Service Logs
+  - name: Reminders
+  - name: Admin
+paths:
+  /v1/public/landing:
+    get:
+      tags: [Public]
+      summary: Get landing page content
+      responses:
+        '200':
+          description: Landing content envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LandingContentEnvelope'
+  /v1/auth/csrf:
+    get:
+      tags: [Auth]
+      summary: Issue CSRF token cookie and return token DTO
+      responses:
+        '200':
+          description: CSRF token payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CsrfTokenEnvelope'
+  /v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authenticated session payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSessionEnvelope'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /v1/auth/mobile/register:
+    post:
+      tags: [Auth]
+      summary: Mobile registration with access and refresh tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Mobile auth session payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MobileAuthSessionEnvelope'
+  /v1/auth/mobile/login:
+    post:
+      tags: [Auth]
+      summary: Mobile login with access and refresh tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Mobile auth session payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MobileAuthSessionEnvelope'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /v1/auth/mobile/google:
+    post:
+      tags: [Auth]
+      summary: Mobile Google login with access and refresh tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoogleLoginRequest'
+      responses:
+        '200':
+          description: Mobile auth session payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MobileAuthSessionEnvelope'
+  /v1/auth/mobile/refresh:
+    post:
+      tags: [Auth]
+      summary: Rotate mobile refresh token and issue a new access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Rotated mobile auth session payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MobileAuthSessionEnvelope'
+        '401':
+          description: Refresh token invalid, expired, or reused
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /v1/auth/mobile/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke the current mobile refresh token family
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Logout acknowledgement envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericOkEnvelope'
+  /v1/auth/mobile/sessions:
+    get:
+      tags: [Auth]
+      summary: List active mobile sessions for the current user
+      responses:
+        '200':
+          description: Active mobile sessions envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MobileSessionListEnvelope'
+  /v1/auth/mobile/logout-current:
+    post:
+      tags: [Auth]
+      summary: Revoke the current mobile session only
+      responses:
+        '200':
+          description: Logout acknowledgement envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericOkEnvelope'
+  /v1/auth/mobile/logout-all:
+    post:
+      tags: [Auth]
+      summary: Revoke all active mobile sessions for the current user
+      responses:
+        '200':
+          description: Logout acknowledgement envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericOkEnvelope'
+  /v1/auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current authenticated user
+      responses:
+        '200':
+          description: Current session payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeEnvelope'
+        '401':
+          description: Missing or expired session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /v1/vehicle-catalog:
+    get:
+      tags: [Garage]
+      summary: Get normalized vehicle catalog hierarchy
+      responses:
+        '200':
+          description: Vehicle catalog envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleCatalogEnvelope'
+  /v1/vehicles:
+    get:
+      tags: [Garage]
+      summary: List user vehicles
+      responses:
+        '200':
+          description: Vehicles envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleListEnvelope'
+    post:
+      tags: [Garage]
+      summary: Create vehicle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VehicleMutationRequest'
+      responses:
+        '201':
+          description: Created vehicle envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleItemEnvelope'
+        '422':
+          description: Invalid catalog/configuration binding
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /v1/vehicles/{vehicleId}:
+    patch:
+      tags: [Garage]
+      summary: Update vehicle metadata
+      parameters:
+        - $ref: '#/components/parameters/VehicleId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VehicleMutationRequest'
+      responses:
+        '200':
+          description: Updated vehicle envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleItemEnvelope'
+        '404':
+          description: Vehicle not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+    delete:
+      tags: [Garage]
+      summary: Soft delete vehicle
+      parameters:
+        - $ref: '#/components/parameters/VehicleId'
+      responses:
+        '200':
+          description: Deleted vehicle envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleItemEnvelope'
+  /v1/vehicles/{vehicleId}/service-logs:
+    get:
+      tags: [Service Logs]
+      summary: List service logs for vehicle
+      parameters:
+        - $ref: '#/components/parameters/VehicleId'
+      responses:
+        '200':
+          description: Service logs envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceLogListEnvelope'
+    post:
+      tags: [Service Logs]
+      summary: Create service log for vehicle
+      parameters:
+        - $ref: '#/components/parameters/VehicleId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceLogCreateRequest'
+      responses:
+        '201':
+          description: Created service log envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceLogItemEnvelope'
+  /v1/vehicles/{vehicleId}/service-logs/{serviceLogId}:
+    delete:
+      tags: [Service Logs]
+      summary: Delete service log for vehicle
+      parameters:
+        - $ref: '#/components/parameters/VehicleId'
+        - $ref: '#/components/parameters/ServiceLogId'
+      responses:
+        '200':
+          description: Deleted service log envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceLogItemEnvelope'
+        '404':
+          description: Service log not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /v1/vehicles/{vehicleId}/maintenance-plan:
+    get:
+      tags: [Maintenance]
+      summary: Get resolved maintenance plan for vehicle
+      parameters:
+        - $ref: '#/components/parameters/VehicleId'
+      responses:
+        '200':
+          description: Maintenance plan envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaintenancePlanEnvelope'
+  /v1/vehicles/{vehicleId}/maintenance-plan/request:
+    post:
+      tags: [Maintenance]
+      summary: Create missing maintenance plan request
+      parameters:
+        - $ref: '#/components/parameters/VehicleId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MissingPlanRequestBody'
+      responses:
+        '201':
+          description: Updated maintenance plan envelope after request creation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaintenancePlanEnvelope'
+  /v1/vehicles/{vehicleId}/maintenance-plan/items/{planItemId}/status:
+    patch:
+      tags: [Maintenance]
+      summary: Update maintenance item status
+      parameters:
+        - $ref: '#/components/parameters/VehicleId'
+        - $ref: '#/components/parameters/PlanItemId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MaintenanceStatusRequest'
+      responses:
+        '200':
+          description: Updated maintenance plan envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaintenancePlanEnvelope'
+  /v1/reminders:
+    get:
+      tags: [Reminders]
+      summary: List current reminder queue
+      responses:
+        '200':
+          description: Reminders envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReminderListEnvelope'
+  /v1/catalog:
+    get:
+      tags: [Reminders]
+      summary: Get maintenance procedures and templates catalog for authenticated clients
+      responses:
+        '200':
+          description: Catalog envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogEnvelope'
+  /v1/admin/overview:
+    get:
+      tags: [Admin]
+      summary: Get admin dashboard overview snapshot
+      responses:
+        '200':
+          description: Admin overview envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminOverviewEnvelope'
+components:
+  parameters:
+    VehicleId:
+      name: vehicleId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ServiceLogId:
+      name: serviceLogId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    PlanItemId:
+      name: planItemId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              description: Stable machine-readable error code.
+            message:
+              type: string
+              description: User-facing localized message.
+            details:
+              description: Validation issues or endpoint-specific details.
+    CsrfTokenEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [csrfToken]
+          properties:
+            csrfToken:
+              type: string
+    AuthUser:
+      type: object
+      required: [userId, email, fullName, role]
+      properties:
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+        role:
+          type: string
+          enum: [user, admin]
+        avatarUrl:
+          type: [string, 'null']
+          format: uri
+        hasPassword:
+          type: boolean
+        hasGoogleAccount:
+          type: boolean
+    AuthSessionEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [user]
+          properties:
+            user:
+              $ref: '#/components/schemas/AuthUser'
+    MeEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [user, csrfReady]
+          properties:
+            user:
+              $ref: '#/components/schemas/AuthUser'
+            csrfReady:
+              type: boolean
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+    RegisterRequest:
+      type: object
+      required: [fullName, email, password]
+      properties:
+        fullName:
+          type: string
+          minLength: 2
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+    GoogleLoginRequest:
+      type: object
+      required: [idToken]
+      properties:
+        idToken:
+          type: string
+    RefreshTokenRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+    MobileAuthSessionEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [user, sessionId, accessToken, accessTokenExpiresIn, refreshToken, refreshTokenExpiresAt]
+          properties:
+            user:
+              $ref: '#/components/schemas/AuthUser'
+            sessionId:
+              type: string
+              format: uuid
+            accessToken:
+              type: string
+            accessTokenExpiresIn:
+              type: integer
+            refreshToken:
+              type: string
+            refreshTokenExpiresAt:
+              type: string
+              format: date-time
+    GenericOkEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [ok]
+          properties:
+            ok:
+              type: boolean
+    MobileSession:
+      type: object
+      required: [id, familyId, deviceLabel, expiresAt, createdAt, isCurrent]
+      properties:
+        id:
+          type: string
+          format: uuid
+        familyId:
+          type: string
+          format: uuid
+        deviceLabel:
+          type: string
+        userAgent:
+          type: [string, 'null']
+        expiresAt:
+          type: string
+          format: date-time
+        lastUsedAt:
+          type: [string, 'null']
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        isCurrent:
+          type: boolean
+    MobileSessionListEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/MobileSession'
+    Vehicle:
+      type: object
+      required: [id, user_id, generation_id, configuration_id, make, model, engine_name, transmission_name, year, mileage_km, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        generation_id:
+          type: string
+          format: uuid
+        configuration_id:
+          type: string
+          format: uuid
+        make:
+          type: string
+        model:
+          type: string
+        generation:
+          type: [string, 'null']
+        engine_name:
+          type: string
+        transmission_name:
+          type: string
+        drivetrain_label:
+          type: [string, 'null']
+        year:
+          type: integer
+        vin:
+          type: [string, 'null']
+        license_plate:
+          type: [string, 'null']
+        image_url:
+          type: [string, 'null']
+        mileage_km:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    VehicleMutationRequest:
+      type: object
+      required: [configurationId, year, mileageKm]
+      properties:
+        configurationId:
+          type: string
+          format: uuid
+        year:
+          type: integer
+        vin:
+          type: [string, 'null']
+        licensePlate:
+          type: [string, 'null']
+        imageUrl:
+          type: [string, 'null']
+          format: uri
+        mileageKm:
+          type: integer
+    VehicleListEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Vehicle'
+    VehicleItemEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [item]
+          properties:
+            item:
+              $ref: '#/components/schemas/Vehicle'
+    VehicleCatalogEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [brands]
+          properties:
+            brands:
+              type: array
+              items:
+                type: object
+                required: [id, slug, name, models]
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  slug:
+                    type: string
+                  name:
+                    type: string
+                  models:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+    ServiceLogItem:
+      type: object
+      required: [procedure_id, title_uk]
+      properties:
+        procedure_id:
+          type: string
+          format: uuid
+        title_uk:
+          type: string
+        notes_uk:
+          type: [string, 'null']
+    ServiceLog:
+      type: object
+      required: [id, vehicle_id, service_date, mileage_km, items]
+      properties:
+        id:
+          type: string
+          format: uuid
+        vehicle_id:
+          type: string
+          format: uuid
+        service_date:
+          type: string
+          format: date
+        mileage_km:
+          type: integer
+        service_station:
+          type: [string, 'null']
+        notes_uk:
+          type: [string, 'null']
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceLogItem'
+    ServiceLogCreateRequest:
+      type: object
+      required: [serviceDate, mileageKm, items]
+      properties:
+        serviceDate:
+          type: string
+          format: date
+        mileageKm:
+          type: integer
+        serviceStation:
+          type: [string, 'null']
+        notesUk:
+          type: [string, 'null']
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [procedureId]
+            properties:
+              procedureId:
+                type: string
+                format: uuid
+              notesUk:
+                type: [string, 'null']
+    ServiceLogListEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/ServiceLog'
+    ServiceLogItemEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [item]
+          properties:
+            item:
+              $ref: '#/components/schemas/ServiceLog'
+    MaintenanceStatusRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [pending, skipped]
+    MissingPlanRequestBody:
+      type: object
+      properties:
+        noteUk:
+          type: [string, 'null']
+    MaintenancePlanEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [vehicle, items, availableTemplates, templateSync, missingPlanRequest]
+          properties:
+            vehicle:
+              $ref: '#/components/schemas/Vehicle'
+            plan:
+              type: [object, 'null']
+              additionalProperties: true
+            items:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+            availableTemplates:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+            templateSync:
+              type: object
+              additionalProperties: true
+            missingPlanRequest:
+              type: [object, 'null']
+              additionalProperties: true
+    ReminderListEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                type: object
+                required: [vehicle_id, vehicle_name, procedure_id, procedure_title, current_mileage_km, status]
+                properties:
+                  vehicle_id:
+                    type: string
+                    format: uuid
+                  vehicle_name:
+                    type: string
+                  procedure_id:
+                    type: string
+                    format: uuid
+                  procedure_title:
+                    type: string
+                  due_date:
+                    type: [string, 'null']
+                    format: date
+                  due_mileage_km:
+                    type: [integer, 'null']
+                  current_mileage_km:
+                    type: integer
+                  status:
+                    type: string
+                    enum: [due, upcoming]
+    CatalogEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [procedures, templates]
+          properties:
+            procedures:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+            templates:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+    AdminOverviewEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [stats, users, missingPlanRequests]
+          properties:
+            stats:
+              type: object
+              additionalProperties:
+                type: string
+            users:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+            missingPlanRequests:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
