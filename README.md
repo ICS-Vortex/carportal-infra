@@ -1,11 +1,21 @@
-# Car Portal
+# Car Portal Infra
 
-Car Portal is a split project for a Ukrainian-language driver dashboard:
+Infrastructure and orchestration for the Car Portal monorepo. This repo wires together the separate application repos with Docker, nginx, PostgreSQL, pgAdmin, and shared environment configuration.
 
-- `frontend` - Next.js 16 + TypeScript personal cabinet UI on `carmain.local` and `carmain.localhost.com`
-- `backend` - Node.js + TypeScript API with raw SQL repositories on `api.carmain.local` and `api.carmain.localhost.com`
-- `mobile` - reserved Flutter workspace for a future mobile client
-- root - Docker, reverse proxy, PostgreSQL, pgAdmin, and shared environment setup
+Related repositories:
+
+| Repo | Description | README |
+| --- | --- | --- |
+| [carportal-frontend](https://github.com/ICS-Vortex/carportal-frontend) | Next.js 16 + TypeScript UI | [frontend/README.md](frontend/README.md) |
+| [carportal-backend](https://github.com/ICS-Vortex/carportal-backend) | Node.js + TypeScript API | [backend/README.md](backend/README.md) |
+| [carportal-mobile](https://github.com/ICS-Vortex/carportal-mobile) | Flutter mobile client | [mobile/README.md](mobile/README.md) |
+| **carportal-infra** (this repo) | Docker, nginx, PostgreSQL, pgAdmin | this file |
+
+Local hostnames:
+
+- Frontend: `carmain.local` / `carmain.localhost.com`
+- API: `api.carmain.local` / `api.carmain.localhost.com`
+- pgAdmin: `pgadmin.carmain.local` / `pgadmin.localhost.com`
 
 ## Features in the starter
 
@@ -16,6 +26,27 @@ Car Portal is a split project for a Ukrainian-language driver dashboard:
 - email/password auth and Google auth backend endpoints
 - admin CMS endpoints for procedures and maintenance schedule templates
 - CSRF, XSS mitigation, security headers, and parameterized SQL queries
+
+## What's in this repo
+
+```
+.
+├── docker-compose.yml          # Development stack with hot reload
+├── docker-compose.prod.yml     # Production-style build and run
+├── .env.example                # Shared environment template
+├── nginx/conf.d/default.conf   # Reverse proxy routing
+└── infra/postgres/init/        # PostgreSQL init scripts (extensions, etc.)
+```
+
+Clone the application repos as sibling folders if you develop outside Docker bind mounts:
+
+```bash
+git clone git@github.com:ICS-Vortex/carportal-infra.git car-portal
+cd car-portal
+git clone git@github.com:ICS-Vortex/carportal-backend.git backend
+git clone git@github.com:ICS-Vortex/carportal-frontend.git frontend
+git clone git@github.com:ICS-Vortex/carportal-mobile.git mobile
+```
 
 ## Local setup
 
@@ -96,12 +127,14 @@ The backend uses plain SQL migration files from `backend/src/db/migrations` and 
 - no ORM or query builder is required
 - repositories continue to use native SQL with positional parameters (`$1`, `$2`, ...)
 
-Run migrations:
+Run migrations manually (only needed outside Docker — the backend container runs them on startup):
 
 ```bash
 cd backend
 npm run db:migrate
 ```
+
+See [backend/README.md](backend/README.md) for standalone API development.
 
 ## Security baseline
 
@@ -114,8 +147,8 @@ npm run db:migrate
 
 ## API contract
 
-- OpenAPI-style contract: [docs/api/openapi.yaml](/home/vortex/projects/car-portal/docs/api/openapi.yaml)
-- Versioning and backward-compatibility policy: [docs/api/versioning.md](/home/vortex/projects/car-portal/docs/api/versioning.md)
+- OpenAPI-style contract: [docs/api/openapi.yaml](docs/api/openapi.yaml)
+- Versioning and backward-compatibility policy: [docs/api/versioning.md](docs/api/versioning.md)
 - Contract test command:
 
 ```bash
