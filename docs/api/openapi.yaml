@@ -19,7 +19,6 @@ tags:
   - name: Maintenance
   - name: Service Logs
   - name: Reminders
-  - name: Admin
 paths:
   /v1/public/landing:
     get:
@@ -200,19 +199,14 @@ paths:
     get:
       tags: [Auth]
       summary: Get current authenticated user
+      description: Returns the active session user when a valid cookie is present, otherwise `user` is null.
       responses:
         '200':
-          description: Current session payload
+          description: Current or anonymous session payload
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/MeEnvelope'
-        '401':
-          description: Missing or expired session
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
   /v1/vehicle-catalog:
     get:
       tags: [Garage]
@@ -419,17 +413,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CatalogEnvelope'
-  /v1/admin/overview:
-    get:
-      tags: [Admin]
-      summary: Get admin dashboard overview snapshot
-      responses:
-        '200':
-          description: Admin overview envelope
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdminOverviewEnvelope'
 components:
   parameters:
     VehicleId:
@@ -521,7 +504,9 @@ components:
           required: [user, csrfReady]
           properties:
             user:
-              $ref: '#/components/schemas/AuthUser'
+              oneOf:
+                - $ref: '#/components/schemas/AuthUser'
+                - type: 'null'
             csrfReady:
               type: boolean
     LoginRequest:
@@ -908,28 +893,6 @@ components:
                 type: object
                 additionalProperties: true
             templates:
-              type: array
-              items:
-                type: object
-                additionalProperties: true
-    AdminOverviewEnvelope:
-      type: object
-      required: [data]
-      properties:
-        data:
-          type: object
-          required: [stats, users, missingPlanRequests]
-          properties:
-            stats:
-              type: object
-              additionalProperties:
-                type: string
-            users:
-              type: array
-              items:
-                type: object
-                additionalProperties: true
-            missingPlanRequests:
               type: array
               items:
                 type: object

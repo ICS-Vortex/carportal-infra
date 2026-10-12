@@ -33,7 +33,7 @@ services:
     environment:
       NODE_ENV: development
       PORT: 4000
-      DATABASE_URL: ${DATABASE_URL:-postgresql://car_portal:car_portal@postgres:5432/car_portal}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://car_portal:car_portal@postgres:5432/car_cms}
       FRONTEND_ORIGIN: ${APP_BASE_URL:-http://carmain.local}
       API_ORIGIN: ${API_BASE_URL:-http://api.carmain.local}
       APP_BASE_URL: ${APP_BASE_URL:-http://carmain.local}
@@ -65,7 +65,7 @@ services:
     command: sh -c "npm install && npm run worker:dev"
     environment:
       NODE_ENV: development
-      DATABASE_URL: ${DATABASE_URL:-postgresql://car_portal:car_portal@postgres:5432/car_portal}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://car_portal:car_portal@postgres:5432/car_cms}
       FRONTEND_ORIGIN: ${APP_BASE_URL:-http://carmain.local}
       API_ORIGIN: ${API_BASE_URL:-http://api.carmain.local}
       APP_BASE_URL: ${APP_BASE_URL:-http://carmain.local}
@@ -102,7 +102,7 @@ services:
       APP_SECRET: ${CMS_APP_SECRET:-carmain-atelier-dev-secret}
       DATABASE_URL: postgresql://${POSTGRES_USER:-car_portal}:${POSTGRES_PASSWORD:-car_portal}@postgres:5432/car_cms?serverVersion=17&charset=utf8
       MESSENGER_TRANSPORT_DSN: amqp://${RABBITMQ_USER:-car_portal}:${RABBITMQ_PASSWORD:-car_portal}@rabbitmq:5672/%2f/messages
-      DEFAULT_URI: http://cms.carmain.localhost.com
+      DEFAULT_URI: ${CMS_BASE_URL:-https://cms.carmain.localhost.com}
       CMS_ADMIN_EMAIL: ${CMS_ADMIN_EMAIL:-editor@carmain.localhost.com}
       CMS_ADMIN_PASSWORD: ${CMS_ADMIN_PASSWORD:-atelier123}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
@@ -132,7 +132,7 @@ services:
       APP_SECRET: ${CMS_APP_SECRET:-carmain-atelier-dev-secret}
       DATABASE_URL: postgresql://${POSTGRES_USER:-car_portal}:${POSTGRES_PASSWORD:-car_portal}@postgres:5432/car_cms?serverVersion=17&charset=utf8
       MESSENGER_TRANSPORT_DSN: amqp://${RABBITMQ_USER:-car_portal}:${RABBITMQ_PASSWORD:-car_portal}@rabbitmq:5672/%2f/messages
-      DEFAULT_URI: http://cms.carmain.localhost.com
+      DEFAULT_URI: ${CMS_BASE_URL:-https://cms.carmain.localhost.com}
       CMS_ADMIN_EMAIL: ${CMS_ADMIN_EMAIL:-editor@carmain.localhost.com}
       CMS_ADMIN_PASSWORD: ${CMS_ADMIN_PASSWORD:-atelier123}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
@@ -228,8 +228,12 @@ services:
         condition: service_started
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/snippets:/etc/nginx/snippets:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - ./frontend/public:/var/www/frontend-public:ro
     restart: unless-stopped
 
 volumes:

@@ -53,8 +53,18 @@ git clone git@github.com:ICS-Vortex/carportal-mobile.git mobile
 ## Local setup
 
 1. Copy `.env.example` to `.env` and adjust secrets.
-   Keep `COOKIE_SECURE=false` for local HTTP hosts and switch it to `true` when the stack is served over HTTPS.
-2. Add hosts:
+2. Generate local TLS certificates (mkcert recommended) and enable HTTPS in nginx:
+
+```bash
+chmod +x scripts/dev-tls.sh scripts/trust-dev-ca.sh
+./scripts/dev-tls.sh
+./scripts/trust-dev-ca.sh   # once per machine (sudo) so the browser trusts HTTPS
+docker compose up -d --force-recreate nginx backend frontend
+```
+
+Use `https://carmain.localhost.com` in the browser. `.env.example` already uses `https://…` URLs and `COOKIE_SECURE=true`.
+
+3. Add hosts:
    - `127.0.0.1 carmain.local carmain.localhost.com`
    - `127.0.0.1 api.carmain.local api.carmain.localhost.com`
    - `127.0.0.1 cms.carmain.local cms.carmain.localhost.com`
@@ -88,13 +98,12 @@ docker compose -f docker-compose.prod.yml up --build -d
 ```
 
 4. Open:
-   - `http://carmain.localhost.com`
-   - `http://carmain.localhost.com/dashboard`
-   - `http://carmain.localhost.com/admin`
-   - `http://cms.carmain.localhost.com/admin`
-   - `http://rabbitmq.carmain.localhost.com`
-   - `http://api.carmain.localhost.com/v1/health`
-   - `http://pgadmin.localhost.com`
+   - `https://carmain.localhost.com`
+   - `https://carmain.localhost.com/dashboard`
+   - `https://cms.carmain.localhost.com/admin`
+   - `https://rabbitmq.carmain.localhost.com`
+   - `https://api.carmain.localhost.com/v1/health`
+   - `https://pgadmin.localhost.com`
 
 ## Google OAuth setup
 
@@ -107,8 +116,9 @@ For the current Google Sign-In flow you need one OAuth 2.0 Client ID of type `We
 5. Go to `APIs & Services` -> `Credentials`.
 6. Click `Create Credentials` -> `OAuth client ID`.
 7. Choose `Web application`.
-8. Add Authorized JavaScript origins:
-   - `http://carmain.localhost.com`
+8. Add Authorized JavaScript origins (match the URL you use in the browser):
+   - `https://carmain.localhost.com` (local HTTPS via `scripts/dev-tls.sh`)
+   - `http://carmain.localhost.com` only if you still serve plain HTTP
    - optionally `http://localhost:3000` if you also run frontend outside Docker
 9. Save and copy the generated `Client ID`.
 
