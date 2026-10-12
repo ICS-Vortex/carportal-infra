@@ -15,6 +15,8 @@ Local hostnames:
 
 - Frontend: `carmain.local` / `carmain.localhost.com`
 - API: `api.carmain.local` / `api.carmain.localhost.com`
+- CMS: `cms.carmain.local` / `cms.carmain.localhost.com`
+- RabbitMQ: `rabbitmq.carmain.local` / `rabbitmq.carmain.localhost.com`
 - pgAdmin: `pgadmin.carmain.local` / `pgadmin.localhost.com`
 
 ## Features in the starter
@@ -55,6 +57,8 @@ git clone git@github.com:ICS-Vortex/carportal-mobile.git mobile
 2. Add hosts:
    - `127.0.0.1 carmain.local carmain.localhost.com`
    - `127.0.0.1 api.carmain.local api.carmain.localhost.com`
+   - `127.0.0.1 cms.carmain.local cms.carmain.localhost.com`
+   - `127.0.0.1 rabbitmq.carmain.local rabbitmq.carmain.localhost.com`
    - `127.0.0.1 pgadmin.carmain.local pgadmin.localhost.com`
 3. Start the development stack with hot reload:
 
@@ -67,6 +71,7 @@ The default `docker-compose.yml` now runs in development mode:
 - frontend uses `next dev` with HMR behind nginx
 - backend uses `tsx watch` for live API reloads
 - worker uses `tsx watch` for reminder loop reloads
+- the CMS stores sessions and application cache in Redis
 - source code is mounted into containers, so edits no longer require rebuilding images
 
 If dependencies change, restart the affected service once:
@@ -86,6 +91,8 @@ docker compose -f docker-compose.prod.yml up --build -d
    - `http://carmain.localhost.com`
    - `http://carmain.localhost.com/dashboard`
    - `http://carmain.localhost.com/admin`
+   - `http://cms.carmain.localhost.com/admin`
+   - `http://rabbitmq.carmain.localhost.com`
    - `http://api.carmain.localhost.com/v1/health`
    - `http://pgadmin.localhost.com`
 
@@ -119,22 +126,15 @@ Why both are needed:
 
 With the current popup/token flow, redirect URIs are not required yet. If later we switch to a full OAuth redirect flow, we will add explicit redirect URIs too.
 
-## Migrations strategy
+## Migrations
 
-The backend uses plain SQL migration files from `backend/src/db/migrations` and a lightweight migration runner.
-
-- schema changes stay explicit and reviewable
-- no ORM or query builder is required
-- repositories continue to use native SQL with positional parameters (`$1`, `$2`, ...)
-
-Run migrations manually (only needed outside Docker — the backend container runs them on startup):
+Schema changes are Doctrine migrations in the CMS. The CMS container applies them on startup:
 
 ```bash
-cd backend
-npm run db:migrate
+docker compose exec cms php bin/console doctrine:migrations:migrate --no-interaction
 ```
 
-See [backend/README.md](backend/README.md) for standalone API development.
+The Node API does not run migrations.
 
 ## Security baseline
 

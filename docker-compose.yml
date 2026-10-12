@@ -29,7 +29,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
       target: deps
-    command: sh -c "npm install && npm run db:migrate && npm run dev"
+    command: sh -c "npm install && npm run dev"
     environment:
       NODE_ENV: development
       PORT: 4000
@@ -62,7 +62,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
       target: deps
-    command: sh -c "npm install && npm run db:migrate && npm run worker:dev"
+    command: sh -c "npm install && npm run worker:dev"
     environment:
       NODE_ENV: development
       DATABASE_URL: ${DATABASE_URL:-postgresql://car_portal:car_portal@postgres:5432/car_portal}
@@ -86,6 +86,68 @@ services:
     volumes:
       - ./backend:/app
       - backend-node-modules:/app/node_modules
+    restart: unless-stopped
+
+  cms:
+    container_name: car-portal-cms
+    image: car-portal-cms:dev
+    build:
+      context: ./cms
+      dockerfile: docker/Dockerfile
+      target: dev
+    user: "${CMS_UID:-1000}:${CMS_GID:-1000}"
+    command: cms-web-entrypoint
+    environment:
+      APP_ENV: dev
+      APP_SECRET: ${CMS_APP_SECRET:-carmain-atelier-dev-secret}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-car_portal}:${POSTGRES_PASSWORD:-car_portal}@postgres:5432/car_cms?serverVersion=17&charset=utf8
+      MESSENGER_TRANSPORT_DSN: amqp://${RABBITMQ_USER:-car_portal}:${RABBITMQ_PASSWORD:-car_portal}@rabbitmq:5672/%2f/messages
+      DEFAULT_URI: http://cms.carmain.localhost.com
+      CMS_ADMIN_EMAIL: ${CMS_ADMIN_EMAIL:-editor@carmain.localhost.com}
+      CMS_ADMIN_PASSWORD: ${CMS_ADMIN_PASSWORD:-atelier123}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      CMS_COMPOSER_INSTALL: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./cms:/app
+    restart: unless-stopped
+
+  cms-worker:
+    container_name: car-portal-cms-worker
+    image: car-portal-cms:dev
+    build:
+      context: ./cms
+      dockerfile: docker/Dockerfile
+      target: dev
+    user: "${CMS_UID:-1000}:${CMS_GID:-1000}"
+    command: cms-worker-entrypoint
+    environment:
+      APP_ENV: dev
+      APP_SECRET: ${CMS_APP_SECRET:-carmain-atelier-dev-secret}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-car_portal}:${POSTGRES_PASSWORD:-car_portal}@postgres:5432/car_cms?serverVersion=17&charset=utf8
+      MESSENGER_TRANSPORT_DSN: amqp://${RABBITMQ_USER:-car_portal}:${RABBITMQ_PASSWORD:-car_portal}@rabbitmq:5672/%2f/messages
+      DEFAULT_URI: http://cms.carmain.localhost.com
+      CMS_ADMIN_EMAIL: ${CMS_ADMIN_EMAIL:-editor@carmain.localhost.com}
+      CMS_ADMIN_PASSWORD: ${CMS_ADMIN_PASSWORD:-atelier123}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      CMS_COMPOSER_INSTALL: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      cms:
+        condition: service_started
+    volumes:
+      - ./cms:/app
     restart: unless-stopped
 
   postgres:
@@ -125,6 +187,33 @@ services:
       - pgadmin-data:/var/lib/pgadmin
     restart: unless-stopped
 
+  rabbitmq:
+    container_name: car-portal-rabbitmq
+    image: rabbitmq:4-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-car_portal}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-car_portal}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+
+  redis:
+    container_name: car-portal-redis
+    image: redis:8-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
   nginx:
     container_name: car-portal-nginx
     image: nginx:1.27-alpine
@@ -135,6 +224,8 @@ services:
         condition: service_started
       pgadmin:
         condition: service_healthy
+      cms:
+        condition: service_started
     ports:
       - "80:80"
     volumes:
@@ -147,3 +238,4 @@ volumes:
   postgres17-data:
   pgadmin-data:
   vehicle-uploads:
+  redis-data:

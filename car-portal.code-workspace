@@ -1,0 +1,14 @@
+{
+  "folders": [
+    { "name": "infra", "path": "." },
+    { "name": "backend", "path": "backend" },
+    { "name": "frontend", "path": "frontend" },
+    { "name": "cms", "path": "cms" },
+    { "name": "mobile", "path": "mobile" }
+  ],
+  "settings": {
+    "git.autoRepositoryDetection": true,
+    "git.repositoryScanMaxDepth": 2,
+    "git.detectSubmodules": true
+  }
+}

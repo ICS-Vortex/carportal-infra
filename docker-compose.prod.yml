@@ -20,7 +20,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    command: sh -c "npm run db:migrate:start && npm run start"
+    command: npm run start
     environment:
       NODE_ENV: production
       PORT: 4000
@@ -73,6 +73,60 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  cms:
+    container_name: car-portal-cms-prod
+    image: car-portal-cms:prod
+    build:
+      context: ./cms
+      dockerfile: docker/Dockerfile
+      target: prod
+    command: cms-web-entrypoint
+    environment:
+      APP_ENV: prod
+      APP_SECRET: ${CMS_APP_SECRET:-carmain-atelier-dev-secret}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-car_portal}:${POSTGRES_PASSWORD:-car_portal}@postgres:5432/car_cms?serverVersion=17&charset=utf8
+      MESSENGER_TRANSPORT_DSN: amqp://${RABBITMQ_USER:-car_portal}:${RABBITMQ_PASSWORD:-car_portal}@rabbitmq:5672/%2f/messages
+      DEFAULT_URI: http://cms.carmain.localhost.com
+      CMS_ADMIN_EMAIL: ${CMS_ADMIN_EMAIL:-editor@carmain.localhost.com}
+      CMS_ADMIN_PASSWORD: ${CMS_ADMIN_PASSWORD:-atelier123}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  cms-worker:
+    container_name: car-portal-cms-worker-prod
+    image: car-portal-cms:prod
+    build:
+      context: ./cms
+      dockerfile: docker/Dockerfile
+      target: prod
+    command: cms-worker-entrypoint
+    environment:
+      APP_ENV: prod
+      APP_SECRET: ${CMS_APP_SECRET:-carmain-atelier-dev-secret}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-car_portal}:${POSTGRES_PASSWORD:-car_portal}@postgres:5432/car_cms?serverVersion=17&charset=utf8
+      MESSENGER_TRANSPORT_DSN: amqp://${RABBITMQ_USER:-car_portal}:${RABBITMQ_PASSWORD:-car_portal}@rabbitmq:5672/%2f/messages
+      DEFAULT_URI: http://cms.carmain.localhost.com
+      CMS_ADMIN_EMAIL: ${CMS_ADMIN_EMAIL:-editor@carmain.localhost.com}
+      CMS_ADMIN_PASSWORD: ${CMS_ADMIN_PASSWORD:-atelier123}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      cms:
+        condition: service_started
+    restart: unless-stopped
+
   postgres:
     container_name: car-portal-postgres-prod
     image: postgres:17-alpine
@@ -110,6 +164,33 @@ services:
       - pgadmin-data:/var/lib/pgadmin
     restart: unless-stopped
 
+  rabbitmq:
+    container_name: car-portal-rabbitmq-prod
+    image: rabbitmq:4-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-car_portal}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-car_portal}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+
+  redis:
+    container_name: car-portal-redis-prod
+    image: redis:8-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
   nginx:
     container_name: car-portal-nginx-prod
     image: nginx:1.27-alpine
@@ -120,6 +201,8 @@ services:
         condition: service_started
       pgadmin:
         condition: service_healthy
+      cms:
+        condition: service_started
     ports:
       - "80:80"
     volumes:
@@ -130,3 +213,4 @@ volumes:
   postgres17-data:
   pgadmin-data:
   vehicle-uploads:
+  redis-data:
