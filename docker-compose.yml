@@ -14,6 +14,7 @@ services:
       NEXT_TELEMETRY_DISABLED: "1"
       INTERNAL_API_BASE_URL: http://backend:4000
       NEXT_PUBLIC_API_BASE_URL: ${API_BASE_URL:-http://api.carmain.local}
+      NEXT_PUBLIC_WEBSITE_URL: ${APP_BASE_URL:-https://carmain.localhost.com}
       NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
     depends_on:
       backend:
@@ -47,6 +48,11 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-notify@carmain.local}
+      R2_ACCOUNT_ID: ${R2_ACCOUNT_ID:-}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
+      R2_BUCKET: ${R2_BUCKET:-}
+      R2_PUBLIC_BASE_URL: ${R2_PUBLIC_BASE_URL:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -99,14 +105,15 @@ services:
     command: cms-web-entrypoint
     environment:
       APP_ENV: dev
-      APP_SECRET: ${CMS_APP_SECRET:-carmain-atelier-dev-secret}
+      APP_SECRET: ${CMS_APP_SECRET:-carmain-cms-dev-secret}
       DATABASE_URL: postgresql://${POSTGRES_USER:-car_portal}:${POSTGRES_PASSWORD:-car_portal}@postgres:5432/car_cms?serverVersion=17&charset=utf8
       MESSENGER_TRANSPORT_DSN: amqp://${RABBITMQ_USER:-car_portal}:${RABBITMQ_PASSWORD:-car_portal}@rabbitmq:5672/%2f/messages
       DEFAULT_URI: ${CMS_BASE_URL:-https://cms.carmain.localhost.com}
       CMS_ADMIN_EMAIL: ${CMS_ADMIN_EMAIL:-editor@carmain.localhost.com}
-      CMS_ADMIN_PASSWORD: ${CMS_ADMIN_PASSWORD:-atelier123}
+      CMS_ADMIN_PASSWORD: ${CMS_ADMIN_PASSWORD:-carmain-admin-dev}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
-      CMS_COMPOSER_INSTALL: "1"
+      # Set to 1 on first clone or after composer.json changes (slows every cms restart).
+      CMS_COMPOSER_INSTALL: ${CMS_COMPOSER_INSTALL:-0}
     depends_on:
       postgres:
         condition: service_healthy
@@ -114,6 +121,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "php -r \"exit(@file_get_contents('http://127.0.0.1:8000/health') === false ? 1 : 0);\""]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 45s
     volumes:
       - ./cms:/app
     restart: unless-stopped
@@ -129,12 +142,12 @@ services:
     command: cms-worker-entrypoint
     environment:
       APP_ENV: dev
-      APP_SECRET: ${CMS_APP_SECRET:-carmain-atelier-dev-secret}
+      APP_SECRET: ${CMS_APP_SECRET:-carmain-cms-dev-secret}
       DATABASE_URL: postgresql://${POSTGRES_USER:-car_portal}:${POSTGRES_PASSWORD:-car_portal}@postgres:5432/car_cms?serverVersion=17&charset=utf8
       MESSENGER_TRANSPORT_DSN: amqp://${RABBITMQ_USER:-car_portal}:${RABBITMQ_PASSWORD:-car_portal}@rabbitmq:5672/%2f/messages
       DEFAULT_URI: ${CMS_BASE_URL:-https://cms.carmain.localhost.com}
       CMS_ADMIN_EMAIL: ${CMS_ADMIN_EMAIL:-editor@carmain.localhost.com}
-      CMS_ADMIN_PASSWORD: ${CMS_ADMIN_PASSWORD:-atelier123}
+      CMS_ADMIN_PASSWORD: ${CMS_ADMIN_PASSWORD:-carmain-admin-dev}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       CMS_COMPOSER_INSTALL: "1"
     depends_on:
