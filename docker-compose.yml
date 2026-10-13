@@ -117,6 +117,7 @@ services:
       CMS_COMPOSER_INSTALL: ${CMS_COMPOSER_INSTALL:-0}
       PORTAL_API_INTERNAL_URL: ${PORTAL_API_INTERNAL_URL:-http://backend:4000}
       CMS_UPLOAD_SECRET: ${CMS_UPLOAD_SECRET:-}
+      MAILER_FROM: ${SMTP_FROM:-notify@carmain.local}
     depends_on:
       postgres:
         condition: service_healthy
