@@ -1,3 +1,5 @@
+name: car-portal
+
 services:
   frontend:
     container_name: car-portal-frontend

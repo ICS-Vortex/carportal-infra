@@ -1,0 +1,23 @@
+---
+description: Car Portal architecture, Docker, and working style
+alwaysApply: true
+---
+
+# Car Portal
+
+## Architecture
+
+- Do not grow page files or single components into large monoliths. Split before a file mixes unrelated concerns or grows past a few hundred lines.
+- Frontend: keep `src/app` thin; UI in `src/components`, data access in `src/lib`, shared types/helpers in dedicated modules.
+- Prefer feature composition over one-file dashboards (auth, vehicles, reminders, service logs, admin/CMS stay separate).
+- Repo root is orchestration-only — no monorepo-style root package management.
+- Runtime is a **dedicated Docker stack** (`name: car-portal`, `car-portal-*` containers/images). Never reuse other projects’ containers, networks, or volumes on the host. Prod on a shared VPS uses a dedicated host port (`PROD_HTTP_PORT`); only host nginx may terminate TLS.
+
+## Working style
+
+- Keep answers short and on-topic unless the user asks for depth.
+- Before large frontend edits, outline the target file split; one concern per new file.
+- Partial features: update root `TODO.md` (implemented / in progress / pending).
+- Preserve boundaries: `frontend`, `backend`, and `mobile` stay separable projects.
+- Patches over ~1000 lines: split into smaller edits.
+- Mobile changes: redeploy to emulator and smoke-test. Backend API changes: run the mobile app and verify the contract.

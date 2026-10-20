@@ -1,0 +1,21 @@
+=== FAILED TCP (verbose curl) ===
+2026-10-20T15:18:09Z
+*   Trying 77.237.234.101:443...
+* connect to 77.237.234.101 port 443 from 192.168.0.102 port 34840 failed: Connection refused
+* Failed to connect to ics-vortex.com port 443 after 38 ms: Could not connect to server
+curl: (7) Failed to connect to ics-vortex.com port 443 after 38 ms: Could not connect to server
+
+=== SUCCESS TCP (verbose curl) ===
+2026-10-20T15:18:09Z
+*   Trying 77.237.234.101:443...
+* SSL connection using TLSv1.3 / TLS_AES_256_GCM_SHA384 / X25519MLKEM768 / id-ecPublicKey
+* using HTTP/2
+* [HTTP/2] [1] OPENED stream for https://ics-vortex.com/
+* [HTTP/2] [1] [:method: GET]
+* [HTTP/2] [1] [:scheme: https]
+* [HTTP/2] [1] [:authority: ics-vortex.com]
+* [HTTP/2] [1] [:path: /]
+* [HTTP/2] [1] [user-agent: curl/8.18.0]
+* [HTTP/2] [1] [accept: */*]
+> GET / HTTP/2
+< HTTP/2 200 

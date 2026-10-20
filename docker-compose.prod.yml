@@ -1,9 +1,16 @@
+name: car-portal
+
 services:
   frontend:
     container_name: car-portal-frontend-prod
+    image: car-portal-frontend:prod
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${API_BASE_URL:-https://api.car.ics-vortex.com}
+        NEXT_PUBLIC_WEBSITE_URL: ${APP_BASE_URL:-https://car.ics-vortex.com}
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -18,6 +25,7 @@ services:
 
   backend:
     container_name: car-portal-backend-prod
+    image: car-portal-backend:prod
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -54,6 +62,7 @@ services:
 
   worker:
     container_name: car-portal-worker-prod
+    image: car-portal-backend:prod
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -206,17 +215,12 @@ services:
         condition: service_started
       backend:
         condition: service_started
-      pgadmin:
-        condition: service_healthy
       cms:
         condition: service_started
     ports:
-      - "80:80"
-      - "443:443"
+      - "127.0.0.1:${PROD_HTTP_PORT:-8081}:80"
     volumes:
-      - ./nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./nginx/snippets:/etc/nginx/snippets:ro
-      - ./nginx/certs:/etc/nginx/certs:ro
+      - ./nginx/conf.d/prod.conf:/etc/nginx/conf.d/default.conf:ro
       - ./frontend/public:/var/www/frontend-public:ro
     restart: unless-stopped
 
