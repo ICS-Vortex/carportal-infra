@@ -56,7 +56,10 @@ case "$TARGET" in
     ssh_r "set -e
 cd '$REMOTE_DIR'
 [ -f .env ] || cp .env.prod.example .env
-docker compose --env-file .env -f docker-compose.prod.yml up -d --no-build postgres redis rabbitmq nginx
+# Data + messaging only. nginx is updated with --no-deps so compose does not pull
+# frontend/backend/cms via nginx depends_on (see docker-compose.prod.yml).
+docker compose --env-file .env -f docker-compose.prod.yml up -d --no-build postgres redis rabbitmq
+docker compose --env-file .env -f docker-compose.prod.yml up -d --no-build --no-deps nginx
 $REMOTE_DIR/scripts/sync-host-nginx.sh
 "
     ;;
